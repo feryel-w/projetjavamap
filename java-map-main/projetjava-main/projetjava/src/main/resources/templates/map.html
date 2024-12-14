@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte des Points de Collecte</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Carte des Points de Collecte</h1>
+    <div id="map"></div>
+
+    <script th:inline="javascript">
+        var map = L.map('map').setView([36.8065, 10.1815], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Inject collect points from backend
+        var collectPoints = /*[[${collectPoints}]]*/ [];
+
+        var collectIcon = L.icon({
+            iconUrl: '/icons/icons8-collect-50.png', // Replace with your icon path
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
+        });
+
+        // Display existing collection points
+        collectPoints.forEach(function(point) {
+            L.marker([point.latitude, point.longitude], { icon: collectIcon })
+                .addTo(map)
+                .bindPopup('<b>' + point.name + '</b><br>Description: ' + point.description + '<br>Latitude: ' + point.latitude + '<br>Longitude: ' + point.longitude);
+        });
+
+        // Event listener for adding a new point
+        map.on('click', function(e) {
+            var lat = e.latlng.lat;
+            var lng = e.latlng.lng;
+
+            var name = prompt('Enter the name of the collection point:');
+            if (!name) return;
+
+            var description = prompt('Enter a description for the collection point:');
+            if (!description) return;
+
+            // Send data to the backend
+            fetch('/admin/collect-points/add-from-map', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: name, description: description, latitude: lat, longitude: lng })
+            }).then(response => {
+                if (response.ok) {
+                    alert('Collection point added successfully!');
+                    location.reload(); // Refresh to show the new point
+                } else {
+                    alert('Failed to add the collection point.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
